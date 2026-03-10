@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Machine Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 5px;
+      background-color: #f0f0f0;
+      color: #333;
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+    }
+
+    button {
+      padding: 5px 10px;
+      margin: 2px;
+      font-size: 0.9rem;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .tab {
+      display: none;
+      max-height: 70vh;
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+
+    .active {
+      display: block;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      margin: 10px 0;
+    }
+
+    .tile {
+      background: white;
+      padding: 6px;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      text-align: center;
+      font-size: 0.75rem;
+    }
+
+    .tile .value {
+      font-size: 1rem;
+      font-weight: bold;
+      margin-top: 3px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 3px;
+      text-align: center;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      margin: 5px 0;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .scroll-controls {
+      position: fixed;
+      right: 10px;
+      bottom: 70px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .scroll-controls button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px;
+      font-size: 1.2rem;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    #reasonModal {
+      display: none;
+      position: fixed;
+      top: 0%;
+      left: 5%;
+      right: 5%;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      z-index: 1000;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    #modalBackdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
+
+    #reasonButtons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin-top: 7px;
+    }
+
+    #reasonButtons button {
+      font-size: 1rem;
+      padding: 7px 5px;
+      border-radius: 6px;
+      background: #007bff;
+      color: white;
+      border: none;
+      text-align: center;
+      min-height: 5px;
+    }
+
+    #reasonButtons button:hover {
+      background-color: #0056b3;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      #reasonButtons {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>🛠️ Machine Dashboard</h2>
+  <div>
+    <button onclick="showTab('home')">Home</button>
+    <button onclick="showTab('logs')">Downtime Logs</button>
+    <button onclick="showTab('history')">History</button>
+  </div>
+
+  <div id="home" class="tab active">
+    <div class="header">
+      <div>Vibration: <span id="vib-home">--</span> m/s²</div>
+      <div>Status: <span id="machine-status-home">--</span></div>
+    </div>
+
+    <div class="grid">
+      <div class="tile">Uptime (Vacuum Time)<div class="value" id="uptime">--:--:--</div></div>
+      <div class="tile">Downtime<div class="value" id="downtime">--:--:--</div></div>
+      <div class="tile">Utilization<div class="value"><span id="utilization">--</span>%</div></div>
+      <div class="tile">Pending<div class="value"><span id="reasonPercent">--</span></div></div>
+    </div>
+
+    <div class="grid">
+      <div class="tile">🟢 Working<div class="value" id="time-working">--:--:--</div></div>
+      <div class="tile">🟡 Idle<div class="value" id="time-idle">--:--:--</div></div>
+      <div class="tile">🟥/🔴 Off<div class="value" id="time-off">--:--:--</div></div>
+      <div class="tile">MTBF<div class="value" id="mtbf">--:--:--</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="tile">Avg Down<div class="value" id="avg">--:--:--</div></div>
+      <div class="tile">Longest<div class="value" id="longest">--:--:--</div></div>
+    </div>
+  </div>
+
+  <div id="logs" class="tab">
+    <div class="header">
+      <div>Vibration: <span id="vib-logs">--</span> m/s²</div>
+      <div>Status: <span id="machine-status-logs">--</span></div>
+    </div>
+    <h3>📋 Downtime Log</h3>
+    <table>
+      <thead>
+        <tr><th>Start</th><th>End</th><th>Duration</th><th>Reason</th></tr>
+      </thead>
+      <tbody id="logTable"></tbody>
+    </table>
+  </div>
+
+  <div id="history" class="tab">
+    <h3>📅 History Summary</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Uptime</th>
+          <th>Downtime</th>
+          <th>Util%</th>
+          <th>MTBF</th>
+          <th>Avg</th>
+          <th>Longest</th>
+          <th>Reason</th>
+          <th>Completion</th>
+          <th>Pending</th>
+        </tr>
+      </thead>
+      <tbody id="historyTable"></tbody>
+    </table>
+  </div>
+
+  <div class="scroll-controls">
+    <button onclick="scrollTab(-400)">⬆</button>
+    <button onclick="scrollTab(400)">⬇</button>
+  </div>
+
+  <div id="reasonModal">
+    <h3>Select Downtime Reason</h3>
+    <div id="reasonButtons"></div>
+    <button style="margin-top:10px;" onclick="closeReasonModal()">Cancel</button>
+  </div>
+
+  <div id="modalBackdrop" onclick="closeReasonModal()"></div>
+
+  <script>
+    let pauseUpdates = false;
+    let currentStartTime = null;
+
+    const REASONS = [
+      "No Task Assigned",
+      "Loading Mould",
+      "Unloading Mould",
+      "Preparation of Mould",
+      "Waiting for Instructions",
+      "Changeover for New Batch",
+      "Machine Breakdown",
+      "Lunch Break",
+      "QC Pending",
+      "Raw Material Shortage",
+      "Tea Break",
+      "Power Cut",
+      "Maintenance",
+      "Shift Change",
+      "Technical Issue",
+      "Cleaning"
+    ];
+
+    function showTab(id) {
+      ["home", "logs", "history"].forEach(tabId => {
+        document.getElementById(tabId).classList.remove("active");
+      });
+      document.getElementById(id).classList.add("active");
+
+      if (id === "history") {
+        updateHistory();
+      }
+    }
+
+    function formatDuration(s) {
+      s = Math.max(0, Number(s || 0));
+      const h = String(Math.floor(s / 3600)).padStart(2, "0");
+      const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+      const sec = String(Math.floor(s % 60)).padStart(2, "0");
+      return `${h}:${m}:${sec}`;
+    }
+
+    function scrollTab(amount) {
+      const tabs = ["home", "logs", "history"];
+      for (const id of tabs) {
+        const tab = document.getElementById(id);
+        if (tab.classList.contains("active")) {
+          tab.scrollBy({ top: amount, behavior: "smooth" });
+          break;
+        }
+      }
+    }
+
+    function openReasonModal(start) {
+      currentStartTime = start;
+      const container = document.getElementById("reasonButtons");
+      container.innerHTML = "";
+
+      REASONS.forEach(reason => {
+        const btn = document.createElement("button");
+        btn.textContent = reason;
+        btn.onclick = () => {
+          submitReason(currentStartTime, reason);
+          closeReasonModal();
+        };
+        container.appendChild(btn);
+      });
+
+      document.getElementById("reasonModal").style.display = "block";
+      document.getElementById("modalBackdrop").style.display = "block";
+    }
+
+    function closeReasonModal() {
+      document.getElementById("reasonModal").style.display = "none";
+      document.getElementById("modalBackdrop").style.display = "none";
+    }
+
+    function submitReason(start, reason) {
+      if (!reason) return;
+
+      fetch(`/updateReason?start=${start}&reason=${encodeURIComponent(reason)}`)
+        .then(res => {
+          if (res.ok) {
+            updateAll();
+          } else {
+            alert("❌ Failed to submit reason.");
+          }
+        })
+        .catch(() => alert("❌ Failed to submit reason."));
+    }
+
+    function updateAll() {
+      fetch("/data")
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("vib-home").textContent = Number(data.vibration).toFixed(2);
+          document.getElementById("machine-status-home").textContent = data.status;
+          document.getElementById("vib-logs").textContent = Number(data.vibration).toFixed(2);
+          document.getElementById("machine-status-logs").textContent = data.status;
+        });
+
+      fetch("/dailyStats")
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("uptime").textContent = formatDuration(data.uptime);
+          document.getElementById("downtime").textContent = formatDuration(data.downtime);
+          document.getElementById("utilization").textContent = data.utilization;
+          document.getElementById("mtbf").textContent = formatDuration(data.mtbf);
+          document.getElementById("avg").textContent = formatDuration(data.avg_duration);
+          document.getElementById("longest").textContent = formatDuration(data.longest);
+          document.getElementById("reasonPercent").textContent = data.pending_reasons;
+        });
+
+      fetch("/statusBreakdown")
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("time-working").textContent = formatDuration(data.working);
+          document.getElementById("time-idle").textContent = formatDuration(data.idle);
+          document.getElementById("time-off").textContent = formatDuration(data.off);
+        });
+
+      fetch("/log")
+        .then(res => res.json())
+        .then(logs => {
+          const table = document.getElementById("logTable");
+          table.innerHTML = "";
+
+          logs.forEach(entry => {
+            const start = new Date(entry.start * 1000).toLocaleString("en-IN");
+            const end = entry.end ? new Date(entry.end * 1000).toLocaleString("en-IN") : "Ongoing";
+            const duration = entry.end
+              ? entry.end - entry.start
+              : Math.floor(Date.now() / 1000) - entry.start;
+
+            let reasonCell = "";
+            if (!entry.reason && entry.end !== null) {
+              reasonCell = `<button onclick="openReasonModal(${entry.start})">Select Reason</button>`;
+            } else if (entry.end === null) {
+              reasonCell = entry.reason ? entry.reason : "Ongoing";
+            } else {
+              reasonCell = entry.reason;
+            }
+
+            const row = `
+              <tr>
+                <td>${start}</td>
+                <td>${end}</td>
+                <td>${formatDuration(duration)}</td>
+                <td>${reasonCell}</td>
+              </tr>
+            `;
+            table.innerHTML += row;
+          });
+        });
+    }
+
+    function updateHistory() {
+      fetch("/history")
+        .then(res => res.json())
+        .then(data => {
+          const table = document.getElementById("historyTable");
+          table.innerHTML = "";
+
+          data.forEach(entry => {
+            const row = `
+              <tr>
+                <td>${entry.date}</td>
+                <td>${formatDuration(entry.uptime)}</td>
+                <td>${formatDuration(entry.downtime)}</td>
+                <td>${entry.utilization}%</td>
+                <td>${formatDuration(entry.mtbf)}</td>
+                <td>${formatDuration(entry.avg_duration)}</td>
+                <td>${formatDuration(entry.longest)}</td>
+                <td>${entry.most_common_reason}</td>
+                <td>${entry.reason_completion_rate}%</td>
+                <td>${entry.pending_reasons}</td>
+              </tr>
+            `;
+            table.innerHTML += row;
+          });
+        });
+    }
+
+    document.addEventListener("focusin", (e) => {
+      if (e.target.tagName === "SELECT") {
+        pauseUpdates = true;
+      }
+    });
+
+    document.addEventListener("focusout", (e) => {
+      if (e.target.tagName === "SELECT") {
+        setTimeout(() => {
+          pauseUpdates = false;
+        }, 500);
+      }
+    });
+
+    setInterval(() => {
+      if (!pauseUpdates) {
+        updateAll();
+      }
+    }, 1000);
+
+    updateAll();
+  </script>
+</body>
+</html>
