@@ -45,7 +45,7 @@ class TelegramService:
                 response = requests.post(url, data=data, files=files, timeout=60)
                 print("Telegram upload response:", response.status_code, response.text)
         except Exception as exc:
-            print(f"❌ Failed to send document: {exc}")
+            print(f"Failed to send document: {exc}")
 
     def telegram_command_listener_loop(self) -> None:
         command_url = f"https://api.telegram.org/bot{self.token}/getUpdates"
@@ -72,10 +72,10 @@ class TelegramService:
                     if text == "/status":
                         data = self.monitoring_service.get_data_payload()
                         reply = (
-                            f"📟 *Machine Status*\n"
-                            f"📈 Vibration: {data['vibration']} m/s²\n"
-                            f"⚙️ Threshold: {data['threshold']}\n"
-                            f"🟢 Status: {data['status']}"
+                            f"*Machine Status*\n"
+                            f"Vibration: {data['vibration']} m/s²\n"
+                            f"Threshold: {data['threshold']}\n"
+                            f"Status: {data['status']}"
                         )
                         self.send_message(reply)
 
@@ -83,10 +83,10 @@ class TelegramService:
                         logs = self.monitoring_service.get_log_payload()
 
                         if not logs:
-                            self.send_message("📋 No downtime logs found today.")
+                            self.send_message("No downtime logs found today.")
                             continue
 
-                        messages = ["📋 *All Downtime Logs:*"]
+                        messages = ["*All Downtime Logs:*"]
                         now = int(time.time())
 
                         for entry in logs:
@@ -98,13 +98,13 @@ class TelegramService:
                                 )
                                 reason = entry["reason"] or "⚠️ No reason"
                                 messages.append(
-                                    f"🛑 {start} → {end} ({duration})\nReason: {reason}"
+                                    f"{start} → {end} ({duration})\nReason: {reason}"
                                 )
                             else:
                                 duration = self.monitoring_service.format_duration(
                                     now - entry["start"]
                                 )
-                                messages.append(f"⏳ Ongoing since {start} ({duration})")
+                                messages.append(f"Ongoing since {start} ({duration})")
 
                         full_message = "\n\n".join(messages)
                         chunks = [
@@ -121,25 +121,25 @@ class TelegramService:
                         if os.path.exists(file_path):
                             self.send_document(file_path)
                         else:
-                            self.send_message("📂 Excel log not found for today.")
+                            self.send_message("Excel log not found for today.")
 
                     elif text == "/summary":
                         data = self.monitoring_service.compute_summary_data()
                         reply = (
-                            f"📊 *Current Summary*\n"
-                            f"🕒 Uptime: {self.monitoring_service.format_duration(data['uptime'])}\n"
-                            f"⏸️ Downtime: {self.monitoring_service.format_duration(data['downtime'])}\n"
-                            f"⚙️ Utilization: {data['utilization']}%\n"
-                            f"⏳ MTBF: {self.monitoring_service.format_duration(data['mtbf'])}\n"
-                            f"⌛ Avg Downtime: {self.monitoring_service.format_duration(data['avg_duration'])}\n"
-                            f"🛑 Longest Downtime: {self.monitoring_service.format_duration(data['longest'])}\n"
-                            f"🔍 Most Common Reason: {data['most_common_reason']}\n"
-                            f"✅ Reason Completion Rate: {data['reason_completion_rate']}%\n"
-                            f"📋 Pending Reasons: {data['pending_reasons']}\n"
-                            f"\n📶 *Status Breakdown:*\n"
-                            f"🟢 Working: {self.monitoring_service.format_duration(data['status_breakdown']['working'])}\n"
-                            f"🟡 Idle: {self.monitoring_service.format_duration(data['status_breakdown']['idle'])}\n"
-                            f"🟥/🔴 Off: {self.monitoring_service.format_duration(data['status_breakdown']['off'])}\n"
+                            f"*Current Summary*\n"
+                            f"Uptime: {self.monitoring_service.format_duration(data['uptime'])}\n"
+                            f"Downtime: {self.monitoring_service.format_duration(data['downtime'])}\n"
+                            f"Utilization: {data['utilization']}%\n"
+                            f"MTBF: {self.monitoring_service.format_duration(data['mtbf'])}\n"
+                            f"Avg Downtime: {self.monitoring_service.format_duration(data['avg_duration'])}\n"
+                            f"Longest Downtime: {self.monitoring_service.format_duration(data['longest'])}\n"
+                            f"Most Common Reason: {data['most_common_reason']}\n"
+                            f"Reason Completion Rate: {data['reason_completion_rate']}%\n"
+                            f"Pending Reasons: {data['pending_reasons']}\n"
+                            f"\n *Status Breakdown:*\n"
+                            f"Working: {self.monitoring_service.format_duration(data['status_breakdown']['working'])}\n"
+                            f"Idle: {self.monitoring_service.format_duration(data['status_breakdown']['idle'])}\n"
+                            f"Off: {self.monitoring_service.format_duration(data['status_breakdown']['off'])}\n"
                         )
                         self.send_message(reply)
 
